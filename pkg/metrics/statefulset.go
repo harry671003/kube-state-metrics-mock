@@ -1,42 +1,109 @@
 package metrics
 
-/*
-# HELP kube_statefulset_created Unix creation timestamp
-# Type kube_statefulset_created gauge
+import (
+	"github.com/harry671003/KubeStateMetricsMock/pkg/cluster"
+	"github.com/harry671003/KubeStateMetricsMock/pkg/util"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
 
-# HELP kube_statefulset_status_replicas The number of replicas per StatefulSet.
-# Type kube_statefulset_status_replicas gauge
+var (
+	ssCreated = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_created",
+		Help: "Unix creation timestamp.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasNum = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_replicas",
+		Help: "The number of replicas per StatefulSet.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_replicas_available",
+		Help: "The number of available replicas per StatefulSet.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasCurrent = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_replicas_current",
+		Help: "The number of current replicas per StatefulSet.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasReady = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_replicas_ready",
+		Help: "The number of ready replicas per StatefulSet.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasUpdated = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_replicas_updated",
+		Help: "The number of updated replicas per StatefulSet.",
+	}, []string{"namespace", "statefulset"})
+	ssReplicasGeneration = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_observed_generation",
+		Help: "The generation observed by the StatefulSet controller.",
+	})
+	ssReplicasDesired = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_statefulset_replicas",
+		Help: "Number of desired pods for a StatefulSet.",
+	})
+	ssMetaGeneration = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_statefulset_metadata_generation",
+		Help: "Sequence number representing a specific generation of the desired state for the StatefulSet.",
+	})
+	ssAnnotations = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_annotations",
+		Help: "Kubernetes annotations converted to Prometheus labels.",
+	}, []string{"namespace", "statefulset"})
+	ssLabels = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_statefulset_labels",
+		Help: "Kubernetes labels converted to Prometheus labels.",
+	}, []string{"namespace", "statefulset"})
+	ssCurRevision = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_current_revision",
+		Help: "Indicates the version of the StatefulSet used to generate Pods in the sequence [0,currentReplicas).",
+	})
+	ssUpdateRevision = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "kube_statefulset_status_update_revision",
+		Help: "Indicates the version of the StatefulSet used to generate Pods in the sequence [replicas-updatedReplicas,replicas)",
+	})
+)
 
-# HELP kube_statefulset_status_replicas_available The number of available replicas per StatefulSet.
-# Type kube_statefulset_status_replicas_available gauge
+type StatefulSetMetrics struct{}
 
-# HELP kube_statefulset_status_replicas_current The number of current replicas per StatefulSet.
-# Type kube_statefulset_status_replicas_current gauge
+func (m *StatefulSetMetrics) Register(r *prometheus.Registry) {
+	r.MustRegister(ssCreated)
+	r.MustRegister(ssReplicasNum)
+	r.MustRegister(ssReplicasAvailable)
+	r.MustRegister(ssReplicasCurrent)
+	r.MustRegister(ssReplicasReady)
+	r.MustRegister(ssReplicasUpdated)
+	r.MustRegister(ssReplicasGeneration)
+	r.MustRegister(ssReplicasDesired)
+	r.MustRegister(ssMetaGeneration)
+	r.MustRegister(ssAnnotations)
+	r.MustRegister(ssLabels)
+	r.MustRegister(ssCurRevision)
+	r.MustRegister(ssUpdateRevision)
+}
 
-# HELP kube_statefulset_status_replicas_ready The number of ready replicas per StatefulSet.
-# Type kube_statefulset_status_replicas_ready gauge
+func (m *StatefulSetMetrics) Update(cluster *cluster.Cluster) {
+	m.updateCreated(cluster)
+	m.updateReplicas(cluster)
+}
 
-# HELP kube_statefulset_status_replicas_updated The number of updated replicas per StatefulSet.
-# Type kube_statefulset_status_replicas_updated gauge
+func (m *StatefulSetMetrics) updateCreated(cluster *cluster.Cluster) {
+	for ns, statefulsets := range cluster.StatefulSets {
+		for _, s := range statefulsets {
+			ssCreated.WithLabelValues(ns, s).SetToCurrentTime()
+		}
+	}
+}
 
-# HELP kube_statefulset_status_observed_generation The generation observed by the StatefulSet controller.
-# Type kube_statefulset_status_observed_generation gauge
-
-# HELP kube_statefulset_replicas Number of desired pods for a StatefulSet.
-# Type kube_statefulset_replicas gauge
-
-# HELP kube_statefulset_metadata_generation Sequence number representing a specific generation of the desired state for the StatefulSet.
-# Type kube_statefulset_metadata_generation gauge
-
-# HELP kube_statefulset_annotations Kubernetes annotations converted to Prometheus labels.
-# Type kube_statefulset_annotations gauge
-
-# HELP kube_statefulset_labels Kubernetes labels converted to Prometheus labels.
-# Type kube_statefulset_labels gauge
-
-# HELP kube_statefulset_status_current_revision Indicates the version of the StatefulSet used to generate Pods in the sequence [0,currentReplicas).
-# Type kube_statefulset_status_current_revision gauge
-
-# HELP kube_statefulset_status_update_revision Indicates the version of the StatefulSet used to generate Pods in the sequence [replicas-updatedReplicas,replicas)
-# Type kube_statefulset_status_update_revision gauge
-*/
+func (m *StatefulSetMetrics) updateReplicas(cluster *cluster.Cluster) {
+	for ns, statefulsets := range cluster.StatefulSets {
+		for _, s := range statefulsets {
+			rand := util.RandBetween(0, len(cluster.Pods))
+			ssReplicasNum.WithLabelValues(ns, s).Set(rand)
+			ssReplicasAvailable.WithLabelValues(ns, s).Set(rand)
+			ssReplicasCurrent.WithLabelValues(ns, s).Set(rand)
+			ssReplicasReady.WithLabelValues(ns, s).Set(rand)
+			ssReplicasUpdated.WithLabelValues(ns, s).Set(rand)
+			ssLabels.WithLabelValues(ns, s).Set(1)
+			ssAnnotations.WithLabelValues(ns, s).Set(1)
+		}
+	}
+}

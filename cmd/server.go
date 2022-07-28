@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/harry671003/KubeStateMetricsMock/pkg/cluster"
 	"github.com/harry671003/KubeStateMetricsMock/pkg/config"
 	"github.com/harry671003/KubeStateMetricsMock/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
@@ -14,7 +15,11 @@ import (
 
 func main() {
 	reg := prometheus.NewRegistry()
-	collect(&config.DefaultConfig, reg)
+	cluster := cluster.NewCluster(&config.DefaultConfig)
+
+	fmt.Printf("%v\n", cluster.Namespaces)
+	fmt.Printf("%v\n", cluster.StatefulSets)
+	update(cluster, reg)
 	serve("", 9009, reg)
 }
 
@@ -26,9 +31,10 @@ func serve(host string, port int, reg *prometheus.Registry) {
 	http.ListenAndServe(addr, nil)
 }
 
-func collect(config *config.Config, reg *prometheus.Registry) {
+func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
 	metrics := []metrics.Metrics{
 		&metrics.CertMetrics{},
+		&metrics.StatefulSetMetrics{},
 	}
 
 	for _, m := range metrics {
@@ -38,7 +44,7 @@ func collect(config *config.Config, reg *prometheus.Registry) {
 	go func() {
 		for {
 			for _, m := range metrics {
-				m.Update(config)
+				m.Update(cluster)
 			}
 
 			time.Sleep(2 * time.Second)

@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"github.com/harry671003/KubeStateMetricsMock/pkg/config"
+	"github.com/harry671003/KubeStateMetricsMock/pkg/cluster"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -34,7 +34,7 @@ func (c *CertMetrics) Register(r *prometheus.Registry) {
 	r.MustRegister(csrCertLength)
 }
 
-func (c *CertMetrics) Update(config *config.Config) {
+func (c *CertMetrics) Update(cluster *cluster.Cluster) {
 	csrAnnotations.Inc()
 	csrCreated.Inc()
 	csrCertLength.Inc()
