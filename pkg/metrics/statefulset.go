@@ -96,7 +96,8 @@ func (m *StatefulSetMetrics) updateCreated(cluster *cluster.Cluster) {
 func (m *StatefulSetMetrics) updateReplicas(cluster *cluster.Cluster) {
 	for ns, statefulsets := range cluster.StatefulSets {
 		for _, s := range statefulsets {
-			rand := util.RandBetween(0, len(cluster.Pods))
+			totalReplicas := float64(len(cluster.Pods))
+			rand := util.RandBetween(0, totalReplicas)
 			ssReplicasNum.WithLabelValues(ns, s).Set(rand)
 			ssReplicasAvailable.WithLabelValues(ns, s).Set(rand)
 			ssReplicasCurrent.WithLabelValues(ns, s).Set(rand)

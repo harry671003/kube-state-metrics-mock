@@ -1,50 +1,119 @@
 package metrics
 
-/*
+import (
+	"github.com/harry671003/KubeStateMetricsMock/pkg/cluster"
+	"github.com/harry671003/KubeStateMetricsMock/pkg/util"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
 
-# HELP kube_deployment_created Unix creation timestamp
-# Type kube_deployment_created gauge
+var (
+	deployCreated = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_created",
+		Help: "Unix creation timestamp.",
+	}, []string{"namespace", "deployment"})
+	deployReplicasNum = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_replicas",
+		Help: "The number of replicas per deployment.",
+	}, []string{"namespace", "deployment"})
+	deployReplicasAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_replicas_available",
+		Help: "The number of available replicas per deployment.",
+	}, []string{"namespace", "deployment"})
+	deployReplicasUnavailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_replicas_unavailable",
+		Help: "The number of available replicas per deployment.",
+	}, []string{"namespace", "deployment"})
+	deployReplicasStatusUpdated = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_replicas_updated",
+		Help: "The number of updated replicas per deployment.",
+	}, []string{"namespace", "deployment"})
+	deployReplicasGeneration = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_observed_generation",
+		Help: "The generation observed by the deployment controller.",
+	}, []string{"namespace", "deployment"})
+	deployStatusCondition = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_status_condition",
+		Help: "The current status conditions of a deployment.",
+	}, []string{"namespace", "deployment"})
+	deploySpecReplicasDesired = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_spec_replicas",
+		Help: "Number of desired pods for a deployment.",
+	}, []string{"namespace", "deployment"})
+	deploySpecPaused = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_spec_paused",
+		Help: "Whether the deployment is paused and will not be processed by the deployment controller.",
+	}, []string{"namespace", "deployment"})
+	deploySpecMaxUnavailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_spec_strategy_rollingupdate_max_unavailable",
+		Help: "Maximum number of unavailable replicas during a rolling update of a deployment.",
+	}, []string{"namespace", "deployment"})
+	deploySpecSurge = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_spec_strategy_rollingupdate_max_surge",
+		Help: "Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a deployment.",
+	}, []string{"namespace", "deployment"})
+	deployMetaGeneration = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_metadata_generation",
+		Help: "Sequence number representing a specific generation of the desired state.",
+	}, []string{"namespace", "deployment"})
+	deployAnnotations = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_annotations",
+		Help: "Kubernetes annotations converted to Prometheus labels.",
+	}, []string{"namespace", "statefulset"})
+	deployLabels = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_deployment_labels",
+		Help: "Kubernetes labels converted to Prometheus labels.",
+	}, []string{"namespace", "statefulset"})
+)
 
-# HELP kube_deployment_status_replicas The number of replicas per deployment.
-# Type kube_deployment_status_replicas gauge
+type DeploymentMetrics struct{}
 
-# HELP kube_deployment_status_replicas_ready The number of ready replicas per deployment.
-# Type kube_deployment_status_replicas_ready gauge
+func (m *DeploymentMetrics) Register(r *prometheus.Registry) {
+	r.MustRegister(deployCreated)
+	r.MustRegister(deployReplicasNum)
+	r.MustRegister(deployReplicasAvailable)
+	r.MustRegister(deployReplicasUnavailable)
+	r.MustRegister(deployReplicasStatusUpdated)
+	r.MustRegister(deployReplicasGeneration)
+	r.MustRegister(deployStatusCondition)
+	r.MustRegister(deploySpecReplicasDesired)
+	r.MustRegister(deploySpecPaused)
+	r.MustRegister(deploySpecMaxUnavailable)
+	r.MustRegister(deploySpecSurge)
+	r.MustRegister(deployMetaGeneration)
+	r.MustRegister(deployAnnotations)
+	r.MustRegister(deployLabels)
+}
 
-# HELP kube_deployment_status_replicas_available The number of available replicas per deployment.
-# Type kube_deployment_status_replicas_available gauge
+func (m *DeploymentMetrics) Update(cluster *cluster.Cluster) {
+	m.updateCreated(cluster)
+	m.updateReplicas(cluster)
+}
 
-# HELP kube_deployment_status_replicas_unavailable The number of unavailable replicas per deployment.
-# Type kube_deployment_status_replicas_unavailable gauge
+func (m *DeploymentMetrics) updateCreated(cluster *cluster.Cluster) {
+	for ns, statefulsets := range cluster.StatefulSets {
+		for _, s := range statefulsets {
+			deployCreated.WithLabelValues(ns, s).SetToCurrentTime()
+		}
+	}
+}
 
-# HELP kube_deployment_status_replicas_updated The number of updated replicas per deployment.
-# Type kube_deployment_status_replicas_updated gauge
+func (m *DeploymentMetrics) updateReplicas(cluster *cluster.Cluster) {
+	for ns, deployments := range cluster.Deployments {
+		for _, d := range deployments {
+			totalReplicas := float64(len(cluster.Pods))
+			rand := util.RandBetween(0, totalReplicas)
+			unavailable := totalReplicas - rand
 
-# HELP kube_deployment_status_observed_generation The generation observed by the deployment controller.
-# Type kube_deployment_status_observed_generation gauge
-
-# HELP kube_deployment_status_condition The current status conditions of a deployment.
-# Type kube_deployment_status_condition gauge
-
-# HELP kube_deployment_spec_replicas Number of desired pods for a deployment.
-# Type kube_deployment_spec_replicas gauge
-
-# HELP kube_deployment_spec_paused Whether the deployment is paused and will not be processed by the deployment controller.
-# Type kube_deployment_spec_paused gauge
-
-# HELP kube_deployment_spec_strategy_rollingupdate_max_unavailable Maximum number of unavailable replicas during a rolling update of a deployment.
-# Type kube_deployment_spec_strategy_rollingupdate_max_unavailable gauge
-
-# HELP kube_deployment_spec_strategy_rollingupdate_max_surge Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a deployment.
-# Type kube_deployment_spec_strategy_rollingupdate_max_surge gauge
-
-# HELP kube_deployment_metadata_generation Sequence number representing a specific generation of the desired state.
-# Type kube_deployment_metadata_generation gauge
-
-# HELP kube_deployment_annotations Kubernetes annotations converted to Prometheus labels.
-# Type kube_deployment_annotations gauge
-
-# HELP kube_deployment_labels Kubernetes labels converted to Prometheus labels.
-# Type kube_deployment_labels gauge
-
-*/
+			deployReplicasNum.WithLabelValues(ns, d).Set(rand)
+			deployReplicasAvailable.WithLabelValues(ns, d).Set(rand)
+			deployReplicasUnavailable.WithLabelValues(ns, d).Set(unavailable)
+			deployReplicasStatusUpdated.WithLabelValues(ns, d).Set(rand)
+			deploySpecPaused.WithLabelValues(ns, d).Set(0)
+			deploySpecMaxUnavailable.WithLabelValues(ns, d).Set(rand)
+			deploySpecSurge.WithLabelValues(ns, d).Set(rand)
+			deployLabels.WithLabelValues(ns, d).Set(1)
+			deployAnnotations.WithLabelValues(ns, d).Set(1)
+		}
+	}
+}

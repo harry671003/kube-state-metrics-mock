@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,11 +15,18 @@ import (
 )
 
 func main() {
-	reg := prometheus.NewRegistry()
-	cluster := cluster.NewCluster(&config.DefaultConfig)
+	configFile := flag.String("config_file", "", "Config file")
+	flag.Parse()
 
-	fmt.Printf("%v\n", cluster.Namespaces)
-	fmt.Printf("%v\n", cluster.StatefulSets)
+	cfg, err := config.NewConfig(*configFile)
+	if err != nil {
+		log.Fatalf("Error loading config: %v", err)
+	}
+
+	reg := prometheus.NewRegistry()
+
+	cluster := cluster.NewCluster(cfg)
+
 	update(cluster, reg)
 	serve("", 9009, reg)
 }
@@ -35,6 +43,7 @@ func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
 	metrics := []metrics.Metrics{
 		&metrics.CertMetrics{},
 		&metrics.StatefulSetMetrics{},
+		&metrics.DeploymentMetrics{},
 	}
 
 	for _, m := range metrics {
@@ -46,7 +55,6 @@ func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
 			for _, m := range metrics {
 				m.Update(cluster)
 			}
-
 			time.Sleep(2 * time.Second)
 		}
 	}()
