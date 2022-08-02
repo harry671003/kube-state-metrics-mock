@@ -1,0 +1,23 @@
+----
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics-mock
+	app: kube-state-metrics-mock
+spec:
+  replicas: 1
+  selector:
+    matchlabels:
+      app: kube-state-metrics-mock
+template:
+  metadata:
+    labels:
+      app: kube-state-metrics-mock
+  spec:
+    containers:
+    - name: kube-state-metrics-mock
+	  image: harry671003/kube-state-metrics-mock:latest
+    imagePullPolicy: Always
+	  ports:
+ 	  - containerPort:9009
+    - name: metrics
