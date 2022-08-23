@@ -1,5 +1,11 @@
 package metrics
 
+import (
+	"github.com/harry671003/KubeStateMetricsMock/pkg/cluster"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+)
+
 /*
 
 # HELP kube_persistentvolumeclaim_labels Kubernetes labels converted to Prometheus labels.
@@ -27,3 +33,24 @@ package metrics
 # Type kube_persistentvolume_claim_ref gauge
 
 */
+
+var (
+	pvcInfo = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_persistentvolumeclaim_info",
+		Help: "pvc storage resource requests in bytes",
+	}, []string{"namespace", "persistentvolumeclaim", "storageclass", "volumename"})
+)
+
+type PVCMetrics struct{}
+
+func (m *PVCMetrics) Register(r *prometheus.Registry) {
+	r.MustRegister(pvcInfo)
+}
+
+func (m *PVCMetrics) Update(cluster *cluster.Cluster) {
+	for ns, pvcs := range cluster.PVCs {
+		for _, pvc := range pvcs {
+			pvcInfo.WithLabelValues(ns, pvc, "default", pvc).Set(1)
+		}
+	}
+}

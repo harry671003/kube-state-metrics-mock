@@ -2,7 +2,9 @@
 cluster_config:
   num_nodes: 3
   num_namespaces: 3
-  num_statefulsets: 3
-  num_pods: 3
-  num_deployments: 3
-  num_containers: 3
+  num_deployments_per_namepace: 3
+  num_statefulsets_per_namespace: 3
+  num_pvcs_per_namespace: 3
+  num_replicas_per_deployments: 3
+  num_replicas_per_statefulset: 3
+  num_containers_per_pod: 3

@@ -12,12 +12,21 @@ type Config struct {
 }
 
 type ClusterConfig struct {
-	NumNamespaces   int `yaml:"num_namespaces"`
-	NumNodes        int `yaml:"num_nodes"`
-	NumReplicas     int `yaml:"num_replicas"`
-	NumContainers   int `yaml:"num_containers"`
-	NumDeployments  int `yaml:"num_deployments"`
-	NumStatefulsets int `yaml:"num_statefulsets"`
+	// Cluster level
+	NumNamespaces int `yaml:"num_namespaces"`
+	NumNodes      int `yaml:"num_nodes"`
+
+	// Namespace level
+	NumDeploymentsPerNamespace  int `yaml:"num_deployments_per_namepace"`
+	NumStatefulsetsPerNamespace int `yaml:"num_statefulsets_per_namespace"`
+	NumPVCsPerNamespace         int `yaml:"num_pvcs_per_namespace"`
+
+	// Deployment level
+	NumReplicasPerDeployment  int `yaml:"num_replicas_per_deployments"`
+	NumReplicasPerStatefulset int `yaml:"num_replicas_per_statefulset"`
+
+	// Pod level
+	NumContainersPerPod int `yaml:"num_containers_per_pod"`
 }
 
 var DefaultConfig = Config{
@@ -25,11 +34,17 @@ var DefaultConfig = Config{
 }
 
 var defaultClusterConfig = ClusterConfig{
-	NumNamespaces:   3,
-	NumNodes:        3,
-	NumReplicas:     3,
-	NumDeployments:  3,
-	NumStatefulsets: 3,
+	NumNamespaces: 3,
+	NumNodes:      3,
+
+	NumDeploymentsPerNamespace:  3,
+	NumStatefulsetsPerNamespace: 3,
+	NumPVCsPerNamespace:         3,
+
+	NumReplicasPerDeployment:  3,
+	NumReplicasPerStatefulset: 3,
+
+	NumContainersPerPod: 3,
 }
 
 func NewConfig(filename string) (*Config, error) {

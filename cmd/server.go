@@ -47,6 +47,11 @@ func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
 		&metrics.StatefulSetMetrics{},
 		&metrics.DeploymentMetrics{},
 		&metrics.PodMetrics{},
+		&metrics.NamespaceMetrics{},
+		&metrics.CostModelMetrics{},
+		&metrics.NodeMetrics{},
+		&metrics.NodeExporterMetrics{},
+		&metrics.PVCMetrics{},
 	}
 
 	for _, m := range metrics {
