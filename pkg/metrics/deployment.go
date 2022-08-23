@@ -101,7 +101,7 @@ func (m *DeploymentMetrics) updateCreated(cluster *cluster.Cluster) {
 func (m *DeploymentMetrics) updateReplicas(cluster *cluster.Cluster) {
 	for ns, deployments := range cluster.Deployments {
 		for _, d := range deployments {
-			totalReplicas := float64(len(cluster.Pods))
+			totalReplicas := float64(cluster.NumReplicas)
 			rand := util.RandBetween(0, totalReplicas)
 			unavailable := totalReplicas - rand
 

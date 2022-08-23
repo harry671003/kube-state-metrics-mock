@@ -14,7 +14,8 @@ type Config struct {
 type ClusterConfig struct {
 	NumNamespaces   int `yaml:"num_namespaces"`
 	NumNodes        int `yaml:"num_nodes"`
-	NumPods         int `yaml:"num_pods"`
+	NumReplicas     int `yaml:"num_replicas"`
+	NumContainers   int `yaml:"num_containers"`
 	NumDeployments  int `yaml:"num_deployments"`
 	NumStatefulsets int `yaml:"num_statefulsets"`
 }
@@ -26,7 +27,7 @@ var DefaultConfig = Config{
 var defaultClusterConfig = ClusterConfig{
 	NumNamespaces:   3,
 	NumNodes:        3,
-	NumPods:         3,
+	NumReplicas:     3,
 	NumDeployments:  3,
 	NumStatefulsets: 3,
 }

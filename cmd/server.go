@@ -36,7 +36,9 @@ func serve(host string, port int, reg *prometheus.Registry) {
 
 	addr := fmt.Sprintf("%s:%d", host, port)
 	log.Printf("Serving on: %s\n", addr)
-	http.ListenAndServe(addr, nil)
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.Fatalf("Error running server: %v", err)
+	}
 }
 
 func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
@@ -44,6 +46,7 @@ func update(cluster *cluster.Cluster, reg *prometheus.Registry) {
 		&metrics.CertMetrics{},
 		&metrics.StatefulSetMetrics{},
 		&metrics.DeploymentMetrics{},
+		&metrics.PodMetrics{},
 	}
 
 	for _, m := range metrics {

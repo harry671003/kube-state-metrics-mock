@@ -1,7 +1,8 @@
 # k8s cluster config
 cluster_config:
-  num_nodes: 10
-  num_namespaces: 10
-  num_statefulsets: 5
-  num_pods: 10
-  num_deployments: 10
+  num_nodes: 3
+  num_namespaces: 3
+  num_statefulsets: 3
+  num_pods: 3
+  num_deployments: 3
+  num_containers: 3
