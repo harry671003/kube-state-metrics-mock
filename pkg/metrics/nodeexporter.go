@@ -36,7 +36,7 @@ func (m *NodeExporterMetrics) Update(cluster *cluster.Cluster) {
 	for _, n := range cluster.Nodes {
 		for i := 0; i < 7; i++ {
 			for _, m := range modes {
-				nodeCPUSecondsTotal.WithLabelValues(n, strconv.Itoa(i), m).Add(util.RandFloatBetween(0, 5))
+				nodeCPUSecondsTotal.WithLabelValues(n, strconv.Itoa(i), m).Add(util.RandFloatBetween(5, 0))
 			}
 		}
 	}

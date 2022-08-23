@@ -19,6 +19,7 @@ type ClusterConfig struct {
 	// Namespace level
 	NumDeploymentsPerNamespace  int `yaml:"num_deployments_per_namepace"`
 	NumStatefulsetsPerNamespace int `yaml:"num_statefulsets_per_namespace"`
+	NumServicesPerNamespace     int `yaml:"num_services_per_namespace"`
 	NumPVCsPerNamespace         int `yaml:"num_pvcs_per_namespace"`
 
 	// Deployment level
@@ -38,6 +39,7 @@ var defaultClusterConfig = ClusterConfig{
 	NumNodes:      3,
 
 	NumDeploymentsPerNamespace:  3,
+	NumServicesPerNamespace:     3,
 	NumStatefulsetsPerNamespace: 3,
 	NumPVCsPerNamespace:         3,
 

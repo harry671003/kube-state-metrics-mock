@@ -107,11 +107,11 @@ var (
 	podContainerResourceLimits = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_container_resource_limits",
 		Help: "The number of requested limit resource by a container.",
-	}, []string{"namespace", "pod", "container", "resource", "unit"})
+	}, []string{"namespace", "pod", "container", "resource", "unit", "node"})
 	podContainerResourceRequests = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_container_resource_requests",
 		Help: "The number of requested request resource by a container.",
-	}, []string{"namespace", "pod", "container", "resource", "unit"})
+	}, []string{"namespace", "pod", "container", "resource", "unit", "node"})
 	podContainerStateStarted = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_container_state_started",
 		Help: "Start time in unix timestamp for a pod container.",
@@ -131,7 +131,7 @@ var (
 	podContainerStatusRunning = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_container_status_running",
 		Help: "Describes whether the container is currently in running state.",
-	}, []string{"namespace", "pod", "container"})
+	}, []string{"namespace", "pod", "container", "uid"})
 	podContainerStatusTerminated = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_container_status_terminated",
 		Help: "Describes whether the container is currently in terminated state.",
@@ -167,7 +167,7 @@ var (
 	podOwner = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "kube_pod_owner",
 		Help: "Information about the Pod's owner.",
-	}, []string{"namespace", "pod", "owner_kind"})
+	}, []string{"namespace", "owner_is_controller", "owner_name", "pod", "owner_kind"})
 )
 
 type PodMetrics struct{}
@@ -213,23 +213,27 @@ func (m *PodMetrics) updateContainerMetrics(cluster *cluster.Cluster) {
 	for ns, pods := range cluster.Containers {
 		for p, containers := range pods {
 			for _, c := range containers {
+				uid := util.SHA1(c)
+				node := util.GetFixedAssignment(p, cluster.Nodes)
 				podContainerInfo.WithLabelValues(ns, p, c).Set(1)
 				podContainerLastTerminatedReason.WithLabelValues(ns, p, c, oom).Set(1)
-				podContainerResourceLimits.WithLabelValues(ns, p, c, "cpu", "core").Set(1)
-				podContainerResourceLimits.WithLabelValues(ns, p, c, "memory", "byte").Set(1)
-				podContainerResourceRequests.WithLabelValues(ns, p, c, "cpu", "core").Set(1)
-				podContainerResourceRequests.WithLabelValues(ns, p, c, "memory", "byte").Set(1)
+				podContainerResourceLimits.WithLabelValues(ns, p, c, "cpu", "core", node).Set(1)
+				podContainerResourceLimits.WithLabelValues(ns, p, c, "memory", "byte", node).Set(1)
+				podContainerResourceLimits.WithLabelValues(ns, p, c, "nvidia_com_gpu", "core", node).Set(1)
+				podContainerResourceRequests.WithLabelValues(ns, p, c, "cpu", "core", node).Set(1)
+				podContainerResourceRequests.WithLabelValues(ns, p, c, "nvidia_com_gpu", "core", node).Set(1)
+				podContainerResourceRequests.WithLabelValues(ns, p, c, "memory", "byte", node).Set(1)
 				podContainerStateStarted.WithLabelValues(ns, p, c).SetToCurrentTime()
-				podContainerStatusRestartsTotal.WithLabelValues(ns, p, c, oom).Set(util.RandBetween(0, 2))
-				podContainerStatusRunning.WithLabelValues(ns, p, c).Set(1)
+				podContainerStatusRestartsTotal.WithLabelValues(ns, p, c, oom).Set(util.RandBetween(2, 0))
+				podContainerStatusRunning.WithLabelValues(ns, p, c, uid).Set(1)
 				podContainerStatusTerminated.WithLabelValues(ns, p, c).Set(1)
 				podContainerStatusTerminatedReason.WithLabelValues(ns, p, c, oom).Set(1)
 				podContainerStatusWaiting.WithLabelValues(ns, p, c).Set(1)
 				podContainerStatusWaitingReason.WithLabelValues(ns, p, c, oom).Set(1)
 				if strings.Contains(p, "statefulset") {
-					podOwner.WithLabelValues(ns, p, "DaemonSet")
+					podOwner.WithLabelValues(ns, "true", p, p, "DaemonSet")
 				} else {
-					podOwner.WithLabelValues(ns, p, "ReplicaSet")
+					podOwner.WithLabelValues(ns, "true", p, p, "ReplicaSet")
 				}
 				podAnnotations.WithLabelValues(ns, p).Set(1)
 				podLabels.WithLabelValues(ns, p).Set(1)

@@ -37,14 +37,8 @@ import (
 # HELP kube_node_status_condition kube_node_status_condition condition status for nodes
 # TYPE kube_node_status_condition gauge
 
-# HELP kube_persistentvolume_capacity_bytes kube_persistentvolume_capacity_bytes pv storage capacity in bytes
-# TYPE kube_persistentvolume_capacity_bytes gauge
-
 # HELP kube_persistentvolume_status_phase kube_persistentvolume_status_phase pv status phase
 # TYPE kube_persistentvolume_status_phase gauge
-
-# HELP kube_persistentvolumeclaim_info kube_persistentvolumeclaim_info pvc storage resource requests in bytes
-# TYPE kube_persistentvolumeclaim_info gauge
 
 # HELP kube_persistentvolumeclaim_resource_requests_storage_bytes kube_persistentvolumeclaim_resource_requests_storage_bytes pvc storage resource requests in bytes
 # TYPE kube_persistentvolumeclaim_resource_requests_storage_bytes gauge
@@ -58,14 +52,8 @@ import (
 # HELP kube_pod_container_resource_limits_memory_bytes kube_pod_container_resource_limits_memory_bytes pods container memory bytes resource limits
 # TYPE kube_pod_container_resource_limits_memory_bytes gauge
 
-# HELP kube_pod_container_resource_requests kube_pod_container_resource_requests pods container resource requests
-# TYPE kube_pod_container_resource_requests gauge
-
 # HELP kube_pod_container_status_restarts_total kube_pod_container_status_restarts_total total container restarts
 # TYPE kube_pod_container_status_restarts_total counter
-
-# HELP kube_pod_container_status_running kube_pod_container_status_running pods container status
-# TYPE kube_pod_container_status_running gauge
 
 # HELP kube_pod_labels kube_pod_labels all labels for each pod prefixed with label_
 # TYPE kube_pod_labels gauge
@@ -94,11 +82,6 @@ import (
 
 # HELP kubecost_network_zone_egress_cost kubecost_network_zone_egress_cost Total cost per GB egress across zones
 # TYPE kubecost_network_zone_egress_cost gauge
-
-# HELP kubecost_node_is_spot kubecost_node_is_spot Cloud provider info about node preemptibility
-# TYPE kubecost_node_is_spot gauge
-
-
 
 # HELP pod_pvc_allocation pod_pvc_allocation Bytes used by a PVC attached to a pod
 # TYPE pod_pvc_allocation gauge
@@ -190,6 +173,21 @@ var (
 		Name: "pv_hourly_cost",
 		Help: "Cost per GB per hour on a persistent disk",
 	}, []string{"persistentvolume", "provider_id", "volumenname"})
+
+	nodeIsSpot = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kubecost_node_is_spot",
+		Help: "Cloud provider info about node preemptibility",
+	}, []string{"instance", "node", "instance_type", "provider_id", "region"})
+
+	serviceSelectorLabels = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "service_selector_labels",
+		Help: "Service Selector Labels",
+	}, []string{"namespace", "label_name", "service"})
+
+	lbCost = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kubecost_load_balancer_cost",
+		Help: "Hourly cost of load balancer",
+	}, []string{"namespace", "service_name"})
 )
 
 type CostModelMetrics struct{}
@@ -206,6 +204,9 @@ func (m *CostModelMetrics) Register(r *prometheus.Registry) {
 	r.MustRegister(nodeRAMHourlyCost)
 	r.MustRegister(nodeTotalHourlyCost)
 	r.MustRegister(pvHourlyCost)
+	r.MustRegister(nodeIsSpot)
+	r.MustRegister(serviceSelectorLabels)
+	r.MustRegister(lbCost)
 }
 
 func (m *CostModelMetrics) Update(cluster *cluster.Cluster) {
@@ -217,13 +218,20 @@ func (m *CostModelMetrics) Update(cluster *cluster.Cluster) {
 func (m *CostModelMetrics) UpdateMatchLabels(cluster *cluster.Cluster) {
 	for ns, deploys := range cluster.Deployments {
 		for _, d := range deploys {
-			deployMatchLabels.WithLabelValues(ns, d, d)
+			deployMatchLabels.WithLabelValues(ns, d, d).Set(1)
 		}
 	}
 
 	for ns, ss := range cluster.StatefulSets {
 		for _, s := range ss {
-			deployMatchLabels.WithLabelValues(ns, s, s)
+			deployMatchLabels.WithLabelValues(ns, s, s).Set(1)
+		}
+	}
+
+	for ns, services := range cluster.Services {
+		for _, s := range services {
+			serviceSelectorLabels.WithLabelValues(ns, s, s).Set(1)
+			lbCost.WithLabelValues(ns, s).Set(util.RandFloatBetween(0.2, 0))
 		}
 	}
 }
@@ -251,6 +259,7 @@ func (m *CostModelMetrics) UpdateNode(cluster *cluster.Cluster) {
 		nodeGPUHourlyCost.WithLabelValues(node, node, instanceType, providerId, region).Set(util.RandFloatBetween(1, 0))
 		nodeRAMHourlyCost.WithLabelValues(node, node, instanceType, providerId, region).Set(util.RandFloatBetween(1, 0))
 		nodeTotalHourlyCost.WithLabelValues(node, node, instanceType, providerId, region).Set(util.RandFloatBetween(1, 0))
+		nodeIsSpot.WithLabelValues(node, node, instanceType, providerId, region).Set(0)
 	}
 }
 
@@ -258,7 +267,7 @@ func (m *CostModelMetrics) UpdatePV(cluster *cluster.Cluster) {
 	for _, pvcs := range cluster.PVCs {
 		for _, pvc := range pvcs {
 			providerId := fmt.Sprintf("aws:///us-west-2a/pvc-%s", pvc)
-			pvHourlyCost.WithLabelValues(pvc, providerId, pvc).Set(util.RandFloatBetween(1, 0))
+			pvHourlyCost.WithLabelValues(pvc.VolumeName, providerId, pvc.VolumeName).Set(util.RandFloatBetween(1, 0))
 		}
 	}
 }

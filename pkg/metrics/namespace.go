@@ -27,16 +27,23 @@ var (
 		Name: "kube_namespace_labels",
 		Help: "Kubernetes labels converted to Prometheus labels.",
 	}, []string{"namespace"})
+
+	namespaceAnnotations = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "kube_namespace_annotations",
+		Help: "Kubernetes annotations converted to Prometheus labels.",
+	}, []string{"namespace"})
 )
 
 type NamespaceMetrics struct{}
 
 func (m *NamespaceMetrics) Register(r *prometheus.Registry) {
 	r.MustRegister(namespaceLabels)
+	r.MustRegister(namespaceAnnotations)
 }
 
 func (m *NamespaceMetrics) Update(cluster *cluster.Cluster) {
 	for _, ns := range cluster.Namespaces {
 		namespaceLabels.WithLabelValues(ns).Set(1)
+		namespaceAnnotations.WithLabelValues(ns).Set(1)
 	}
 }

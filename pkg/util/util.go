@@ -1,6 +1,8 @@
 package util
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"hash/fnv"
 	"math"
 	"math/rand"
@@ -24,4 +26,10 @@ func GetFixedAssignment(item string, items []string) string {
 	h := FNV32a(item)
 	numNodes := uint32(len(items))
 	return items[h%numNodes]
+}
+
+func SHA1(s string) string {
+	h := sha1.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/harry671003/KubeStateMetricsMock/pkg/config"
+	"github.com/harry671003/KubeStateMetricsMock/pkg/util"
 )
 
 func NewCluster(cfg *config.Config) *Cluster {
@@ -21,10 +22,16 @@ type Cluster struct {
 	Namespaces                []string
 	StatefulSets              map[string][]string
 	Deployments               map[string][]string
-	PVCs                      map[string][]string
+	Services                  map[string][]string
+	PVCs                      map[string][]PVC
 	Pods                      map[string][]string
 	Containers                map[string](map[string][]string)
 	InstanceTypes             []string
+}
+
+type PVC struct {
+	ClaimName  string
+	VolumeName string
 }
 
 func (c *Cluster) Init(cfg *config.Config) {
@@ -33,7 +40,8 @@ func (c *Cluster) Init(cfg *config.Config) {
 	c.Namespaces = []string{}
 	c.StatefulSets = map[string][]string{}
 	c.Deployments = map[string][]string{}
-	c.PVCs = map[string][]string{}
+	c.Services = map[string][]string{}
+	c.PVCs = map[string][]PVC{}
 	c.Pods = map[string][]string{}
 	c.Containers = map[string]map[string][]string{}
 
@@ -46,6 +54,7 @@ func (c *Cluster) Init(cfg *config.Config) {
 
 		c.initStatefulsets(ns, cfg.ClusterConfig.NumStatefulsetsPerNamespace)
 		c.initDeployments(ns, cfg.ClusterConfig.NumDeploymentsPerNamespace)
+		c.initServices(ns, cfg.ClusterConfig.NumServicesPerNamespace)
 		c.initPVCs(ns, cfg.ClusterConfig.NumPVCsPerNamespace)
 		c.initPods(ns, c.StatefulSets[ns], cfg.ClusterConfig.NumReplicasPerStatefulset)
 		c.initPods(ns, c.Deployments[ns], cfg.ClusterConfig.NumReplicasPerDeployment)
@@ -83,9 +92,20 @@ func (c *Cluster) initStatefulsets(namespace string, n int) {
 	}
 }
 
+func (c *Cluster) initServices(namespace string, n int) {
+	for i := 0; i < n; i++ {
+		c.Services[namespace] = append(c.Services[namespace], c.createString("service", i))
+	}
+}
+
 func (c *Cluster) initPVCs(namespace string, n int) {
 	for i := 0; i < n; i++ {
-		c.PVCs[namespace] = append(c.PVCs[namespace], c.createString("pvc", i))
+		claimName := fmt.Sprintf("%s-%s-%d", namespace, "pvc", i)
+		pvc := PVC{
+			ClaimName:  claimName,
+			VolumeName: util.SHA1(claimName),
+		}
+		c.PVCs[namespace] = append(c.PVCs[namespace], pvc)
 	}
 }
 
